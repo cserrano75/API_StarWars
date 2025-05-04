@@ -5,6 +5,7 @@ import com.google.gson.FieldNamingPolicy;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
+import java.io.FileWriter;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -19,46 +20,57 @@ public class Principal {
         System.out.println("Iniciando...");
 
         Scanner lectura = new Scanner(System.in);
-        //List<Films> films = new ArrayList<>();
-        List<FilmApiSwap> films = new ArrayList<>();
+        List<FilmApiSwap> miListadeTitulos = new ArrayList<>();
+        GsonBuilder gsonBuilder = new GsonBuilder();
+        Gson gson =  gsonBuilder.setPrettyPrinting().create();
+        gsonBuilder.setFieldNamingPolicy(FieldNamingPolicy.UPPER_CAMEL_CASE);
 
-        GsonBuilder gsonbuilder = new GsonBuilder();
-        gsonbuilder.setFieldNamingPolicy(FieldNamingPolicy.UPPER_CAMEL_CASE);
-        gsonbuilder.setPrettyPrinting();
-        Gson gson = gsonbuilder.create();
-
-        while (true) {
+        while(true){
             System.out.println("Escriba el numero de la pelicula: ");
 
-            var busqueda = lectura.nextLine();
+            var busqueda =lectura.nextLine();
 
-            if (busqueda.equalsIgnoreCase("salir")) {
+            if (busqueda.equalsIgnoreCase("salir")){
                 break;
             }
+            String direccion = "https://swapi.py4e.com/api/films/"+Integer.valueOf(busqueda)+"/";
 
-            String direccion = "https://swapi.py4e.com/api/films/"+busqueda + "/";
+            try{
 
-            HttpClient client = HttpClient.newHttpClient();
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(direccion))
-                    .build();
-            HttpResponse<String> response = null;
-            try {
-                response = client
+                HttpClient client = HttpClient.newHttpClient();
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(direccion))
+                        .build();
+                HttpResponse<String> response = client
                         .send(request, HttpResponse.BodyHandlers.ofString());
+
+                String json = response.body();
+
+                FilmApiSwap miFilmApiSwap = gson.fromJson(json, FilmApiSwap.class);
+                System.out.println(json);
+
+                miListadeTitulos.add(miFilmApiSwap);
+
+            }catch (Exception e){
+                System.out.println("Ocurrio un error");
+                System.out.println(e.getMessage());
+            }
+
+            FileWriter escritura = null;
+            try {
+                escritura = new FileWriter("titulo.json");
+
+                escritura.write(gson.toJson(miListadeTitulos));
+                System.out.println("Titulos ya convertidos: " +miListadeTitulos);
+                escritura.close();
 
             } catch (IOException e) {
                 throw new RuntimeException(e);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
             }
 
-            String json = response.body();
-            FilmApiSwap mifilmApiSwap = gson.fromJson(json, FilmApiSwap.class);
-            System.out.println(json);
-            System.out.println("Film ya convertido: " +mifilmApiSwap);
         }
 
-        System.out.println("Finalizo la ejecucion del programa!!");
+        System.out.println(miListadeTitulos);
+        System.out.println("Proceso Finalizado!");
     }
 }
